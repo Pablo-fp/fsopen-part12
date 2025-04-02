@@ -21,17 +21,30 @@ services:
       # 'redis' is the service name defined above, which acts as the hostname
       # within the Docker network created by Compose. 6379 is the default Redis port.
       - REDIS_URL=redis://redis:6379
-      # Even though we don't need MongoDB functionality, the application code
-      # likely expects the MONGO_URL variable to be set.
-      # Provide a placeholder value. The app will try to connect, fail (which is fine for this exercise),
-      # but it should still start and serve the '/' route for the counter.
-      - MONGO_URL=mongodb://mongo-placeholder:27017/placeholderdb
+      # Update MongoDB connection string to use the newly added mongo service
+      - MONGO_URL=mongodb://mongo:27017/tododb
     depends_on:
       - redis # Tell Compose that the backend depends on Redis starting first
+      - mongo # Ensure MongoDB starts before the backend
     networks:
       - todo-app-network # Connect to the custom network
+
+  # Service 3: MongoDB database
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    restart: always
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - todo-app-network
 
 # Define the custom network
 networks:
   todo-app-network:
     driver: bridge # Use the default bridge network driver
+
+volumes:
+  mongo-data:

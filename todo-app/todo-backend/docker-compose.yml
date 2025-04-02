@@ -1,0 +1,37 @@
+version: '3.8' # Specifies the docker-compose version
+
+services:
+  # Service 1: The Redis database for the visit counter
+  redis:
+    image: redis:latest # Use the official Redis image
+    container_name: todo-redis-compose # Optional: give the container a specific name
+    # No ports need to be exposed to the host for Redis,
+    # as only the backend service needs to access it internally.
+    networks:
+      - todo-app-network # Connect to the custom network defined below
+
+  # Service 2: The Node.js backend application
+  backend:
+    build: . # Build the image from the Dockerfile in the current directory (.)
+    container_name: todo-backend-compose # Optional: give the container a specific name
+    ports:
+      - '3000:3000' # Map host port 3000 to container port 3000
+    environment:
+      # Pass the Redis connection URL to the backend container.
+      # 'redis' is the service name defined above, which acts as the hostname
+      # within the Docker network created by Compose. 6379 is the default Redis port.
+      - REDIS_URL=redis://redis:6379
+      # Even though we don't need MongoDB functionality, the application code
+      # likely expects the MONGO_URL variable to be set.
+      # Provide a placeholder value. The app will try to connect, fail (which is fine for this exercise),
+      # but it should still start and serve the '/' route for the counter.
+      - MONGO_URL=mongodb://mongo-placeholder:27017/placeholderdb
+    depends_on:
+      - redis # Tell Compose that the backend depends on Redis starting first
+    networks:
+      - todo-app-network # Connect to the custom network
+
+# Define the custom network
+networks:
+  todo-app-network:
+    driver: bridge # Use the default bridge network driver

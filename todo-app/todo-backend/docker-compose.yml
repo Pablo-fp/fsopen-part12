@@ -24,7 +24,10 @@ services:
       # and it needs to connect via localhost.
       - '127.0.0.1:6379:6379'
     restart: unless-stopped
-    # No volumes needed for this exercise, as we only test the connection setup
-# Optional: Define the volume if you used it for mongo persistence
-# volumes:
-#   mongo_data_dev:
+    volumes:
+      # Mount the named volume 'redis_data_dev' to the container's /data dir
+      - redis_data_dev:/data # <--- ADD THIS LINE
+# Declare the named volume used by the redis service
+volumes:
+  redis_data_dev: {} # <--- ADD THIS SECTION
+  # mongo_data_dev: # Note: ./mongo_data_dev is a bind mount, not a named volume declared here

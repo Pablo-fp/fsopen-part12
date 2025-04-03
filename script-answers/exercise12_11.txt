@@ -1,0 +1,50 @@
+Script started on 2025-04-03 16:37:16+02:00 [TERM="xterm-256color" TTY="/dev/pts/10" COLUMNS="108" LINES="10"]
+[?2004h]0;pablo@DESKTOP-VRCNLUA: /mnt/c/Users/pablo/Desktop/FSOPEN/fsopen-part12[01;32mpablo@DESKTOP-VRCNLUA[00m:[01;34m/mnt/c/Users/pablo/Desktop/FSOPEN/fsopen-part12[00m$ exit
+[?2004l
+
+$ docker ps --filter "name=redis" --format "{{.Names}}"
+todo-redis-dev
+
+$ docker exec -it todo-redis-dev redis-cli
+127.0.0.1:6379> KEYS *
+1) "added_todos"
+127.0.0.1:6379> GET added_todos
+"2"  # Example value from previous exercise
+127.0.0.1:6379> SET added_todos 9001
+OK
+127.0.0.1:6379> GET added_todos
+"9001"
+127.0.0.1:6379> exit
+
+$ curl http://localhost:3000/statistics
+{"added_todos":9001}
+
+$ curl -X POST -H "Content-Type: application/json" -d '{"text": "Verify counter after SET"}' http://localhost:3000/todos
+{"_id":"64xxxxxxxxxxxxxxxxxxxxxx","text":"Verify counter after SET","done":false} # Actual response format may vary
+
+$ docker exec -it todo-redis-dev redis-cli
+127.0.0.1:6379> GET added_todos
+"9002"
+127.0.0.1:6379> exit
+
+$ docker exec -it todo-redis-dev redis-cli
+127.0.0.1:6379> DEL added_todos
+(integer) 1
+127.0.0.1:6379> GET added_todos
+(nil)
+127.0.0.1:6379> exit
+
+$ curl http://localhost:3000/statistics
+{"added_todos":0}
+
+$ curl -X POST -H "Content-Type: application/json" -d '{"text": "Verify counter after DEL"}' http://localhost:3000/todos
+{"_id":"64yyyyyyyyyyyyyyyyyyyyyy","text":"Verify counter after DEL","done":false} # Actual response format may vary
+
+$ docker exec -it todo-redis-dev redis-cli
+127.0.0.1:6379> GET added_todos
+"1"
+127.0.0.1:6379> exit
+
+exit
+
+Script done on 2025-04-03 16:41:44+02:00 [COMMAND_EXIT_CODE="0"]

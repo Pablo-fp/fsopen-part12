@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
 
-const configs = require('../util/config')
+const { getAsync, setAsync } = require('../redis'); // Existing redis import likely here or in todos.js
+const redis = require('../redis'); // <--- ADD THIS LINE FOR TESTING
 
-let visits = 0
+const configs = require('../util/config');
+
+let visits = 0;
 
 /* GET index data. */
 router.get('/', async (req, res) => {
-  visits++
+  visits++;
 
   res.send({
     ...configs,

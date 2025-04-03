@@ -1,50 +1,30 @@
-version: '3.8' # Specifies the docker-compose version
+version: '3.8'
 
 services:
-  # Service 1: The Redis database for the visit counter
-  redis:
-    image: redis:latest # Use the official Redis image
-    container_name: todo-redis-compose # Optional: give the container a specific name
-    # No ports need to be exposed to the host for Redis,
-    # as only the backend service needs to access it internally.
-    networks:
-      - todo-app-network # Connect to the custom network defined below
-
-  # Service 2: The Node.js backend application
-  backend:
-    build: . # Build the image from the Dockerfile in the current directory (.)
-    container_name: todo-backend-compose # Optional: give the container a specific name
-    ports:
-      - '3000:3000' # Map host port 3000 to container port 3000
-    environment:
-      # Pass the Redis connection URL to the backend container.
-      # 'redis' is the service name defined above, which acts as the hostname
-      # within the Docker network created by Compose. 6379 is the default Redis port.
-      - REDIS_URL=redis://redis:6379
-      # Update MongoDB connection string to use the newly added mongo service
-      - MONGO_URL=mongodb://mongo:27017/tododb
-    depends_on:
-      - redis # Tell Compose that the backend depends on Redis starting first
-      - mongo # Ensure MongoDB starts before the backend
-    networks:
-      - todo-app-network # Connect to the custom network
-
-  # Service 3: MongoDB database
   mongo:
     image: mongo:latest
-    container_name: mongo
-    restart: always
+    container_name: todo-mongo-dev # Give it a distinct name
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root # Set username (example)
+      - MONGO_INITDB_ROOT_PASSWORD=example # Set password (example)
+    volumes: # Optional: Make data persistent during development
+      - ./mongo_data_dev:/data/db # Mount a local directory
     ports:
-      - '27017:27017'
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - todo-app-network
+      # Map container port 27017 to host port 127.0.0.1:27017 (localhost only)
+      - 127.0.0.1:27017:27017
+    restart: unless-stopped
 
-# Define the custom network
-networks:
-  todo-app-network:
-    driver: bridge # Use the default bridge network driver
-
-volumes:
-  mongo-data:
+  # Add the Redis service below mongo
+  redis:
+    image: redis:alpine # Use a lightweight redis image
+    container_name: todo-redis-dev # Give it a distinct name
+    ports:
+      # Map container port 6379 to host port 127.0.0.1:6379 (localhost only)
+      # This is necessary because we will run the Node app OUTSIDE this container
+      # and it needs to connect via localhost.
+      - '127.0.0.1:6379:6379'
+    restart: unless-stopped
+    # No volumes needed for this exercise, as we only test the connection setup
+# Optional: Define the volume if you used it for mongo persistence
+# volumes:
+#   mongo_data_dev:

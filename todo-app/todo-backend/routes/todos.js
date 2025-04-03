@@ -9,20 +9,30 @@ router.get('/', async (_, res) => {
   res.send(todos);
 });
 
-/* POST todo to listing. */
+/* POST todo to storage. */
 router.post('/', async (req, res) => {
+  // --- Existing Todo Creation Logic ---
   const todo = await Todo.create({
-    text: req.body.text,
+    text: req.body.text, // Make sure field name matches your model/frontend
     done: false
   });
-  // Update statistics (example - may vary based on exact redis implementation)
+
+  // --- New Logic: Increment Redis Counter ---
   try {
-    const currentStats = (await getAsync('added_todos')) || 0;
-    await setAsync('added_todos', parseInt(currentStats) + 1);
-  } catch (e) {
-    console.error('Redis error:', e);
-    // Decide if failure to update stats should fail the request
+    // Get the current count, default to 0 if key doesn't exist
+    const currentCount = await getAsync('added_todos');
+    const newCount = currentCount ? parseInt(currentCount) + 1 : 1;
+
+    // Set the new count back into Redis
+    await setAsync('added_todos', newCount);
+    console.log(`Incremented added_todos count to: ${newCount}`); // Optional: for logging
+  } catch (error) {
+    // Log error but don't necessarily fail the todo creation
+    console.error('Error updating Redis counter:', error);
   }
+  // --- End of New Logic ---
+
+  // Send back the created todo
   res.send(todo);
 });
 

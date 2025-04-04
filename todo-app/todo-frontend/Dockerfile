@@ -18,14 +18,14 @@ RUN npm ci
 # Copy the rest of the application source code
 COPY . .
 
-# Echo the backend URL being used for the build (for verification)
-RUN echo "Building frontend with VITE_BACKEND_URL=${VITE_BACKEND_URL}"
+# --- Add the test execution step ---
+    RUN echo "Running tests..." && \
+    npm test
+# --- Test step finished ---
 
-# Run the build command, passing the ARG as an ENV var to the build process
-# Vite will embed this value into the static files.
-RUN VITE_BACKEND_URL=${VITE_BACKEND_URL} npm run build
-
-# Build output is in /app/dist
+# Build the application using the build-time argument
+RUN echo "Building frontend with VITE_BACKEND_URL=${VITE_BACKEND_URL}" && \
+    VITE_BACKEND_URL=${VITE_BACKEND_URL} npm run build
 
 # ---- Stage 2: Serve ----
 # Use a lightweight Nginx server to host the static files

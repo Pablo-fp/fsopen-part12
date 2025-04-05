@@ -1,33 +1,69 @@
 version: '3.8'
 
 services:
+  # Backend service configured for development
+  backend-dev:
+    # Build the image using the specific dev Dockerfile
+    build:
+      context: . # Use current directory as context
+      dockerfile: dev.Dockerfile # Specify the dev Dockerfile
+    container_name: todo-backend-dev-container
+    ports:
+      # Map host port 3000 to container port 3000
+      - '3000:3000'
+    volumes:
+      # Mount current directory (.) on the host to /usr/src/app in the container
+      - ./:/usr/src/app
+      # Use a named volume for node_modules to avoid host conflicts
+      - backend_node_modules:/usr/src/app/node_modules
+    environment:
+      # --- Correct URLs for connecting to other services within this compose file ---
+      # 'redis' is the service name defined below. 6379 is the default Redis port (internal).
+      - REDIS_URL=redis://redis:6379
+      # 'mongo' is the service name. Use internal port 27017.
+      # Include credentials defined in the 'mongo' service environment.
+      # Use 'the_database' or your chosen DB name. 'authSource=admin' is often needed.
+      - MONGO_URL=mongodb://root:example@mongo:27017/the_database?authSource=admin
+      # Enable verbose logging for Nodemon (optional)
+      - NODE_ENV=development
+    depends_on:
+      # Ensure mongo and redis containers are started before the backend
+      - mongo
+      - redis
+    # Keep container running interactively for Nodemon
+    stdin_open: true
+    tty: true
+
+  # MongoDB service (mostly unchanged, port mapping kept for host access)
   mongo:
     image: mongo:latest
-    container_name: todo-mongo-dev # Give it a distinct name
+    container_name: todo-mongo-dev # Ensure consistent naming
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root # Set username (example)
-      - MONGO_INITDB_ROOT_PASSWORD=example # Set password (example)
-    volumes: # Optional: Make data persistent during development
-      - ./mongo_data_dev:/data/db # Mount a local directory
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    volumes:
+      # Using a named volume is generally preferred over bind mount for DB data
+      - mongo_data_dev:/data/db
+      # - ./mongo_data_dev:/data/db # Old bind mount - keep if preferred
     ports:
-      # Map container port 27017 to host port 127.0.0.1:27017 (localhost only)
-      - 127.0.0.1:27017:27017
+      # Kept for potential direct access from host (e.g., Mongo Compass)
+      - '127.0.0.1:27017:27017'
     restart: unless-stopped
 
-  # Add the Redis service below mongo
+  # Redis service (mostly unchanged, port mapping kept for host access)
   redis:
-    image: redis:alpine # Use a lightweight redis image
-    container_name: todo-redis-dev # Give it a distinct name
+    image: redis:alpine
+    container_name: todo-redis-dev # Ensure consistent naming
     ports:
-      # Map container port 6379 to host port 127.0.0.1:6379 (localhost only)
-      # This is necessary because we will run the Node app OUTSIDE this container
-      # and it needs to connect via localhost.
+      # Kept for potential direct access from host (e.g., redis-cli)
       - '127.0.0.1:6379:6379'
     restart: unless-stopped
     volumes:
-      # Mount the named volume 'redis_data_dev' to the container's /data dir
-      - redis_data_dev:/data # <--- ADD THIS LINE
-# Declare the named volume used by the redis service
+      # Using named volume for persistence
+      - redis_data_dev:/data
+
+# Declare named volumes
 volumes:
-  redis_data_dev: {} # <--- ADD THIS SECTION
-  # mongo_data_dev: # Note: ./mongo_data_dev is a bind mount, not a named volume declared here
+  backend_node_modules:
+  mongo_data_dev:
+  redis_data_dev:

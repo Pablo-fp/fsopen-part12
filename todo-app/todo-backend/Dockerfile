@@ -1,21 +1,22 @@
-# Stage 1: Use an official Node.js runtime as a parent image
+# todo-app/todo-backend/Dockerfile
 FROM node:18-alpine
 
-# Set the working directory in the container
 WORKDIR /usr/src/app
 
-# --- Optimization: Install dependencies first ---
 COPY package*.json ./
-RUN npm ci --omit=dev
-# Or: RUN npm install --production
 
-# --- Copy application source code ---
+# Install only production dependencies
+RUN npm ci --omit=dev
+
 COPY . .
 
-# --- Security: Run as a non-root user (recommended) ---
+# Create a non-root user and group for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Switch to the non-root user
 USER appuser
 
-# --- Expose port and define start command ---
+# Application's default port
 EXPOSE 3000
+
+# Command to run the application in production mode
 CMD [ "npm", "start" ]

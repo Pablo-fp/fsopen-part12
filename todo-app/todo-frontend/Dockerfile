@@ -1,44 +1,29 @@
-# ---- Stage 1: Build ----
-# Use a Node.js image for the build environment
-FROM node:18-alpine as builder
+# todo-app/todo-frontend/Dockerfile
+# Stage 1: Build the React application
+FROM node:18-alpine AS build-stage
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Declare the build-time argument for the backend URL
-# This value MUST be provided during 'docker build' via --build-arg
-ARG VITE_BACKEND_URL
+# The backend URL used during build time. For production, this points
+# to the path Nginx will use to proxy API requests.
+ARG VITE_BACKEND_URL=/api
 
-# Copy package.json and package-lock.json (or yarn.lock)
 COPY package*.json ./
 
-# Install dependencies using npm ci for clean installs
+# Install only production dependencies (Vite is often a devDep, check if needed for build)
+# If 'npm run build' requires devDeps, use 'npm ci' instead. Check your setup.
+# Assuming build script works with only production deps:
+# RUN npm ci --omit=dev
+# If devDeps ARE needed for build (common with Vite):
 RUN npm ci
 
-# Copy the rest of the application source code
 COPY . .
 
-# --- Add the test execution step ---
-    RUN echo "Running tests..." && \
-    npm test
-# --- Test step finished ---
+# Log the backend URL used during build
+RUN echo "Building frontend for production with VITE_BACKEND_URL=${VITE_BACKEND_URL}"
 
-# Build the application using the build-time argument
-RUN echo "Building frontend with VITE_BACKEND_URL=${VITE_BACKEND_URL}" && \
-    VITE_BACKEND_URL=${VITE_BACKEND_URL} npm run build
+# Execute the production build script, passing the backend URL
+RUN VITE_BACKEND_URL=${VITE_BACKEND_URL} npm run build
 
-# ---- Stage 2: Serve ----
-# Use a lightweight Nginx server to host the static files
-FROM nginx:1.23-alpine
-
-# Copy the built static files from the 'builder' stage
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy a custom Nginx configuration to handle SPA routing
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port 80 (default Nginx port)
-EXPOSE 80
-
-# Default command for Nginx image is usually sufficient
-# CMD ["nginx", "-g", "daemon off;"]
+# The output static files are now in /app/dist
+# We don't need a second stage here, Nginx will handle serving.
